@@ -1,8 +1,3 @@
-/**
- * Lightweight markdown -> HTML renderer used for AI chat replies.
- * Extracted from the original inline <script> in index.html.
- */
-
 export function esc(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -150,7 +145,6 @@ export function parseMD(raw: string): string {
         inTbl = true;
         tRows = [];
       } else if (/^\|[-:\s|]+\|$/.test(ln)) {
-        // separator row, skip
       } else {
         tRows.push(ln.slice(1, -1).split('|'));
       }

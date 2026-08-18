@@ -1,8 +1,3 @@
-/**
- * Prompt-engineering helpers for Kiyora AI.
- * Extracted from the original inline <script> in index.html.
- */
-
 import type { ChatMsg } from './types';
 
 const CODING_KEYWORDS = [

@@ -1,9 +1,3 @@
-/**
- * Client-side API helpers.
- * `callAI` now calls our own Next.js route handler (app/api/chat/route.ts)
- * instead of hitting the upstream AI worker directly from the browser.
- */
-
 import type { ChatMsg } from './types';
 
 const GEO_URL = 'https://geocoding-api.open-meteo.com/v1/search';
