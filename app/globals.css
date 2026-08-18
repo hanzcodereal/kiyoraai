@@ -208,7 +208,6 @@ textarea#inp::placeholder{color:var(--t3)}
 .thinking-body strong:first-child{margin-top:0}
 
 
-/* Message entry animation: fade only (upward slide-in removed) */
 .fi{animation:fi .2s ease}
 @keyframes fi{from{opacity:0}to{opacity:1}}
 

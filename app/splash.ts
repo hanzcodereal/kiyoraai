@@ -1,9 +1,3 @@
-/**
- * Splash screen + initial loading bar logic.
- * Split out from app.ts because it is a one-time boot sequence, not part of
- * the ongoing chat application state.
- */
-
 interface BatteryManager extends EventTarget {
   level: number;
   addEventListener(type: 'levelchange', listener: () => void): void;

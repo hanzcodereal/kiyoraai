@@ -1,17 +1,3 @@
-/**
- * Kiyora AI — core client application logic.
- * This is the TypeScript conversion of the big inline <script> block that
- * used to live at the bottom of index.html. It is imported and initialized
- * from app/page.tsx (a client component) after the static markup mounts.
- *
- * The message list is still rendered imperatively (innerHTML) exactly like
- * the original, since messages contain highlighted code blocks, collapsible
- * "thinking" panels and action buttons that are cheaper to keep as generated
- * HTML strings than to fully port to React state. Everything else (theme,
- * sidebar, top bar, input box, welcome screen) is regular React in the
- * surrounding components.
- */
-
 import type { KeyboardEvent } from 'react';
 import { callAI } from '@/lib/api-client';
 import { parseMD, esc, escInline } from '@/lib/markdown';
@@ -25,10 +11,6 @@ let cid: string | null = null;
 let busy = false;
 let ctrl: AbortController | null = null;
 let lastUserMsg = '';
-
-// ---------------------------------------------------------------------------
-// DOM helpers
-// ---------------------------------------------------------------------------
 
 function $(id: string): HTMLElement | null {
   return document.getElementById(id);
@@ -47,10 +29,6 @@ function resize(el: HTMLTextAreaElement): void {
   el.style.height = Math.min(el.scrollHeight, 220) + 'px';
 }
 
-// ---------------------------------------------------------------------------
-// Init
-// ---------------------------------------------------------------------------
-
 export function initKiyoraApp(): void {
   try {
     convs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
@@ -67,7 +45,6 @@ export function initKiyoraApp(): void {
 
   renderHist();
 
-  // Expose handlers referenced from generated innerHTML (onclick="...")
   window.copyCode = copyCode;
   window.copyMsg = copyMsg;
   window.regenLast = regenLast;
@@ -75,10 +52,6 @@ export function initKiyoraApp(): void {
 
   startHeroRotation();
 }
-
-// ---------------------------------------------------------------------------
-// Theme
-// ---------------------------------------------------------------------------
 
 export function toggleTheme(): void {
   document.body.classList.toggle('dark');
@@ -94,10 +67,6 @@ function updateThemeIcon(): void {
     ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
     : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
 }
-
-// ---------------------------------------------------------------------------
-// Sidebar
-// ---------------------------------------------------------------------------
 
 export function toggleSb(): boolean {
   const sb = $('sb');
@@ -174,10 +143,6 @@ export function newChat(): void {
   renderHist();
 }
 
-// ---------------------------------------------------------------------------
-// Input box
-// ---------------------------------------------------------------------------
-
 export function onInp(el: HTMLTextAreaElement): void {
   resize(el);
 }
@@ -218,10 +183,6 @@ function setLoad(on: boolean): void {
   stopBtn?.classList.toggle('show', on);
 }
 
-// ---------------------------------------------------------------------------
-// AI calls
-// ---------------------------------------------------------------------------
-
 async function callAPI(msgText: string, signal: AbortSignal): Promise<string> {
   try {
     const reply = await callAI([{ r: 'u', c: msgText }], signal);
@@ -231,10 +192,6 @@ async function callAPI(msgText: string, signal: AbortSignal): Promise<string> {
   }
   throw new Error('koneksi ke server gagal. coba reload ya~~');
 }
-
-// ---------------------------------------------------------------------------
-// Sending messages
-// ---------------------------------------------------------------------------
 
 export async function doSend(): Promise<void> {
   if (busy) return;
@@ -345,7 +302,6 @@ async function regenLast(): Promise<void> {
       try {
         analysis = await callAPI(mkAnalyzePrompt(lastUserMsg), ctrl.signal);
       } catch {
-        /* non-fatal */
       }
       updateTyping('Re-generating…');
       reply = await callAPI(mkCodePrompt(lastUserMsg, analysis, newMsgs), ctrl.signal);
@@ -375,10 +331,6 @@ function saveConv(msgs: ChatMsg[]): void {
   renderHist();
 }
 
-// ---------------------------------------------------------------------------
-// Typing indicator
-// ---------------------------------------------------------------------------
-
 function showTyping(label: string): void {
   removeTyping();
   const el = $('msgs');
@@ -403,10 +355,6 @@ function updateTyping(label: string): void {
 function removeTyping(): void {
   $('typing')?.remove();
 }
-
-// ---------------------------------------------------------------------------
-// Message rendering
-// ---------------------------------------------------------------------------
 
 function addMsg(role: 'u' | 'a', content: string, animate: boolean, thinking = ''): void {
   const el = $('msgs');
@@ -496,10 +444,6 @@ export function exportChat(): void {
   a.click();
 }
 
-// ---------------------------------------------------------------------------
-// Welcome hero rotation
-// ---------------------------------------------------------------------------
-
 function timeGreetWord(): string {
   const h = new Date().getHours();
   return h < 11 ? 'Pagi' : h < 15 ? 'Siang' : h < 18 ? 'Sore' : 'Malem';
@@ -560,7 +504,6 @@ async function rotateSubtitle(): Promise<void> {
         return;
       }
     } catch {
-      /* fall through to local subtitle */
     }
   }
   fadeSwap(el, SUB_LOCAL[Math.floor(Math.random() * SUB_LOCAL.length)], false);
