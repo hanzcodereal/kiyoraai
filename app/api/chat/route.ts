@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SYSTEM_PROMPT } from '@/lib/prompts';
 
-// Converted from the original api/api.js.
-// Runs server-side so the upstream worker URL never has to be called
-// directly from the browser.
-
 const WORKER_URL = 'https://anya-apis.vercel.app/ai';
 
 interface UpstreamMessage {
