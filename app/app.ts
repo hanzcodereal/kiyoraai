@@ -1,7 +1,7 @@
 import type { KeyboardEvent } from 'react';
-import { callAI } from '@/lib/api-client';
+import { callAI, generateImage } from '@/lib/api-client';
 import { parseMD, esc, escInline } from '@/lib/markdown';
-import { isCodingQ, detectID, mkAnalyzePrompt, mkCodePrompt, mkGenPrompt } from '@/lib/prompts';
+import { isCodingQ, isImageQ, extractImagePrompt, detectID, mkAnalyzePrompt, mkCodePrompt, mkGenPrompt } from '@/lib/prompts';
 import type { ChatMsg, ConversationStore } from '@/lib/types';
 
 const STORAGE_KEY = 'cv4';
@@ -49,6 +49,9 @@ export function initKiyoraApp(): void {
   window.copyMsg = copyMsg;
   window.regenLast = regenLast;
   window.retryLast = retryLast;
+  window.downloadImg = downloadImg;
+  window.zoomImg = zoomImg;
+  window.closeZoom = closeZoom;
 
   startHeroRotation();
 }
@@ -116,7 +119,7 @@ function loadConv(id: string): void {
   const msgsEl = $('msgs');
   if (welcome) welcome.style.display = 'none';
   if (msgsEl) msgsEl.innerHTML = '';
-  convs[id]?.msgs.forEach((m) => addMsg(m.r, m.c, false));
+  convs[id]?.msgs.forEach((m) => addMsg(m.r, m.c, false, '', m.t, m.cap));
   renderHist();
   scrollBot();
 }
@@ -193,6 +196,15 @@ async function callAPI(msgText: string, signal: AbortSignal): Promise<string> {
   throw new Error('koneksi ke server gagal. coba reload ya~~');
 }
 
+async function callImageAPI(prompt: string, signal: AbortSignal): Promise<string> {
+  try {
+    return await generateImage(prompt, signal);
+  } catch (e) {
+    if (signal.aborted || (e instanceof Error && e.name === 'AbortError')) throw e;
+    throw new Error('gagal generate gambar. coba lagi ya~~');
+  }
+}
+
 export async function doSend(): Promise<void> {
   if (busy) return;
   const inp = $('inp') as HTMLTextAreaElement | null;
@@ -213,6 +225,17 @@ export async function doSend(): Promise<void> {
   ctrl = new AbortController();
 
   try {
+    if (isImageQ(txt)) {
+      const imgPrompt = extractImagePrompt(txt);
+      showTyping(detectID(txt) ? 'Lagi bikin gambarnya…' : 'Generating your image…');
+      const dataUrl = await callImageAPI(imgPrompt, ctrl.signal);
+      removeTyping();
+      addMsg('a', dataUrl, true, '', 'image', imgPrompt);
+      msgs.push({ r: 'a', c: dataUrl, t: 'image', cap: imgPrompt });
+      saveConv(msgs);
+      return;
+    }
+
     let reply = '';
     let analysis = '';
 
@@ -295,6 +318,17 @@ async function regenLast(): Promise<void> {
   setLoad(true);
   ctrl = new AbortController();
   try {
+    if (isImageQ(lastUserMsg)) {
+      const imgPrompt = extractImagePrompt(lastUserMsg);
+      showTyping('Re-generating image…');
+      const dataUrl = await callImageAPI(imgPrompt, ctrl.signal);
+      removeTyping();
+      addMsg('a', dataUrl, true, '', 'image', imgPrompt);
+      newMsgs.push({ r: 'a', c: dataUrl, t: 'image', cap: imgPrompt });
+      saveConv(newMsgs);
+      return;
+    }
+
     let reply = '';
     let analysis = '';
     if (isCodingQ(lastUserMsg)) {
@@ -356,7 +390,14 @@ function removeTyping(): void {
   $('typing')?.remove();
 }
 
-function addMsg(role: 'u' | 'a', content: string, animate: boolean, thinking = ''): void {
+function addMsg(
+  role: 'u' | 'a',
+  content: string,
+  animate: boolean,
+  thinking = '',
+  type: 'text' | 'image' = 'text',
+  caption = ''
+): void {
   const el = $('msgs');
   if (!el) return;
   const row = document.createElement('div');
@@ -364,6 +405,21 @@ function addMsg(role: 'u' | 'a', content: string, animate: boolean, thinking = '
 
   if (role === 'u') {
     row.innerHTML = `<div class="min"><div class="u-bub">${escInline(content).replace(/\n/g, '<br>')}</div></div>`;
+  } else if (type === 'image') {
+    row.innerHTML = `<div class="min"><div class="mc">
+      ${aiHdr()}
+      <div class="gen-img">
+        <img src="${content}" alt="${esc(caption || 'Gambar hasil AI')}" loading="lazy">
+        <div class="img-acts">
+          <button class="abt" onclick="downloadImg(this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download</button>
+          <button class="abt" onclick="zoomImg(this)"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>Perbesar</button>
+        </div>
+        ${caption ? `<div class="img-cap">${escInline(caption)}</div>` : ''}
+      </div>
+      <div class="macts">
+        <button class="abt" onclick="regenLast()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>Regenerate</button>
+      </div>
+    </div></div>`;
   } else {
     let thinkingHtml = '';
     if (thinking) {
@@ -435,6 +491,29 @@ function copyCode(btn: HTMLElement): void {
   });
 }
 
+function downloadImg(btn: HTMLElement): void {
+  const img = btn.closest('.gen-img')?.querySelector('img') as HTMLImageElement | null;
+  if (!img?.src) return;
+  const a = document.createElement('a');
+  a.href = img.src;
+  a.download = `kiyora-image-${Date.now()}.png`;
+  a.click();
+}
+
+function zoomImg(btn: HTMLElement): void {
+  const img = btn.closest('.gen-img')?.querySelector('img') as HTMLImageElement | null;
+  if (!img?.src) return;
+  const lb = $('lightbox');
+  const lbImg = $('lightbox-img') as HTMLImageElement | null;
+  if (!lb || !lbImg) return;
+  lbImg.src = img.src;
+  lb.classList.add('on');
+}
+
+export function closeZoom(): void {
+  $('lightbox')?.classList.remove('on');
+}
+
 export function exportChat(): void {
   if (!cid || !convs[cid]) return;
   const txt = convs[cid].msgs.map((m) => (m.r === 'u' ? 'You:\n' : 'Kiyora:\n') + m.c).join('\n\n────────\n\n');
@@ -464,14 +543,10 @@ function fadeSwap(el: HTMLElement | null, html: string, isHtml = true): void {
 }
 
 const HERO_MSGS: Array<() => string> = [
-  () =>
-    `Halo! Aku <span style="background:linear-gradient(120deg,#3D84F7,#60A5FA,#93BFFF,#3D84F7);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmerBlue 4s linear infinite">Kiyora</span>`,
-  () =>
-    `${dayName()} yang asik sama <span style="background:linear-gradient(120deg,#3D84F7,#60A5FA,#93BFFF,#3D84F7);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmerBlue 4s linear infinite">Kiyora</span>`,
-  () =>
-    `${timeGreetWord()}! Ada yang bisa <span style="background:linear-gradient(120deg,#3D84F7,#60A5FA,#93BFFF,#3D84F7);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmerBlue 4s linear infinite">Kiyora</span> bantu?`,
-  () =>
-    `Yuk ngobrol sama <span style="background:linear-gradient(120deg,#3D84F7,#60A5FA,#93BFFF,#3D84F7);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmerBlue 4s linear infinite">Kiyora</span>`,
+  () => `Halo! Aku <span style="color:var(--acc)">Kiyora</span>`,
+  () => `${dayName()} yang asik sama <span style="color:var(--acc)">Kiyora</span>`,
+  () => `${timeGreetWord()}! Ada yang bisa <span style="color:var(--acc)">Kiyora</span> bantu?`,
+  () => `Yuk ngobrol sama <span style="color:var(--acc)">Kiyora</span>`,
 ];
 
 const SUB_LOCAL: string[] = [
