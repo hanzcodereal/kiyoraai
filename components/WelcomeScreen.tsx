@@ -3,12 +3,12 @@
 import { useSug } from '@/app/app';
 
 const SUGGESTIONS = [
+  'Gambarkan kucing astronot lagi santai di bulan',
   'Buat REST API dengan Node.js + JWT auth',
-  'Jelaskan Big O dan kompleksitas algoritma',
+  'Tips ngatur waktu belajar biar ga burnout',
+  'Rekomendasi ide caption buat foto liburan',
   'Cara implement WebSocket real-time chat',
-  'Docker + Kubernetes deployment guide',
-  'React hooks terbaik untuk state management',
-  'SQL query optimization dan indexing',
+  'Jelasin cara kerja bunga bank ke aku',
 ];
 
 export default function WelcomeScreen() {
@@ -24,8 +24,7 @@ export default function WelcomeScreen() {
       <h1
         id="hero-h1"
         dangerouslySetInnerHTML={{
-          __html:
-            'Halo! Aku <span style="background:linear-gradient(120deg,#3D84F7,#60A5FA,#93BFFF,#3D84F7);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmerBlue 4s linear infinite">Kiyora</span>',
+          __html: 'Halo! Aku <span style="color:var(--acc)">Kiyora</span>',
         }}
       />
       <p
@@ -52,9 +51,11 @@ export default function WelcomeScreen() {
         </div>
         <div className="feat">
           <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="9" cy="9" r="2" />
+            <path d="M21 15l-5-5L5 21" />
           </svg>
-          System Design
+          Bikin Gambar
         </div>
       </div>
       <div className="sug-grid">
