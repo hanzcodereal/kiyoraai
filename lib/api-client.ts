@@ -2,7 +2,7 @@ import type { ChatMsg } from './types';
 
 const GEO_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast';
-const IMAGE_URL = 'https://anya-apis.vercel.app/Imagine';
+const IMAGE_URL = 'https://zelora-api.vercel.app/ai/imagine';
 
 export async function callAI(history: ChatMsg[], externalSignal?: AbortSignal): Promise<string> {
   const controller = new AbortController();
@@ -65,13 +65,19 @@ export async function fetchWeather(city: string): Promise<WeatherResult | null> 
   return { city: name, country, temp: Math.round(cw.temperature), wind: Math.round(cw.windspeed), code: cw.weathercode };
 }
 
-export async function generateImage(prompt: string): Promise<string> {
+export async function generateImage(prompt: string, signal?: AbortSignal): Promise<string> {
   const encoded = encodeURIComponent(prompt);
-  const resp = await fetch(`${IMAGE_URL}?prompt=${encoded}`);
+  const resp = await fetch(`${IMAGE_URL}?prompt=${encoded}`, { signal });
   if (!resp.ok) throw new Error('status ' + resp.status);
   const blob = await resp.blob();
   if (blob.size < 500) throw new Error('response too small');
-  return URL.createObjectURL(blob);
+  if (!blob.type.startsWith('image/')) throw new Error('bukan gambar yang valid');
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('gagal membaca gambar'));
+    reader.readAsDataURL(blob);
+  });
 }
 
 export function getWeatherDesc(code: number): string {
