@@ -10,5 +10,8 @@ declare global {
     copyMsg?: (btn: HTMLElement) => void;
     regenLast?: () => void;
     retryLast?: (btn: HTMLElement) => void;
+    downloadImg?: (btn: HTMLElement) => void;
+    zoomImg?: (btn: HTMLElement) => void;
+    closeZoom?: () => void;
   }
 }
